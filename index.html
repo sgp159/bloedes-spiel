@@ -32,6 +32,7 @@
     transition: left .18s ease-out, top .18s ease-out, transform .2s;
   }
   .knopf:active { transform: translateY(4px); box-shadow: 0 2px 0 #b0263f; }
+  .turbo { transition: none; }
   .fake { background: #8a8a8a; box-shadow: 0 6px 0 #555; }
   .boom { position: absolute; font-size: 48px; pointer-events: none; animation: boom .8s forwards; }
   @keyframes boom { to { transform: translateY(-80px) scale(2); opacity: 0; } }
@@ -46,7 +47,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 let punkte = 0, level = 1, fehl = 0;
-let knopf, fakes = [];
+let knopf, fakes = [], turboTimer;
 
 const lobe = [
   "Wow. Ein Knopf. Gedrückt. Unglaublich.",
@@ -76,6 +77,7 @@ function platziere(el) {
 
 function neuesLevel() {
   document.querySelectorAll(".knopf").forEach((k) => k.remove());
+  clearInterval(turboTimer);
   fakes = [];
   knopf = document.createElement("button");
   knopf.className = "knopf";
@@ -84,6 +86,12 @@ function neuesLevel() {
   knopf.addEventListener("click", getroffen);
   document.body.appendChild(knopf);
   platziere(knopf);
+
+  // Ab Level 10: Knopf springt jeden Frame (30 fps) woanders hin – nur frame-perfect zu treffen
+  if (level >= 10) {
+    knopf.classList.add("turbo");
+    turboTimer = setInterval(() => platziere(knopf), 1000 / 30);
+  }
 
   // Ab Level 4: Fake-Knöpfe, die genauso aussehen (meistens)
   const anzahlFakes = Math.max(0, level - 3);
