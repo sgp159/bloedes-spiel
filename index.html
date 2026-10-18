@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drück den Knopf</title>
+<style>
+  :root { --bg: #fff8e7; --fg: #222; --btn: #ff4d6d; --btn-fg: #fff; --muted: #777; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1b22; --fg: #eee; --btn: #ff4d6d; --btn-fg: #fff; --muted: #aaa; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: "Comic Sans MS", "Comic Neue", system-ui, sans-serif;
+    user-select: none;
+  }
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; padding: 12px 16px;
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    font-size: 18px; z-index: 10; pointer-events: none;
+  }
+  #msg {
+    position: fixed; bottom: 24px; left: 16px; right: 16px; text-align: center;
+    font-size: clamp(18px, 4vw, 28px); min-height: 1.4em; z-index: 10; pointer-events: none;
+  }
+  .knopf {
+    position: absolute; padding: 16px 28px; border: none; border-radius: 999px;
+    background: var(--btn); color: var(--btn-fg); font: inherit; font-size: 22px;
+    cursor: pointer; box-shadow: 0 6px 0 #b0263f; white-space: nowrap;
+    transition: left .18s ease-out, top .18s ease-out, transform .2s;
+  }
+  .knopf:active { transform: translateY(4px); box-shadow: 0 2px 0 #b0263f; }
+  .fake { background: #8a8a8a; box-shadow: 0 6px 0 #555; }
+  .boom { position: absolute; font-size: 48px; pointer-events: none; animation: boom .8s forwards; }
+  @keyframes boom { to { transform: translateY(-80px) scale(2); opacity: 0; } }
+  body.wackel { animation: wackel .3s; }
+  @keyframes wackel { 25% { transform: translateX(-8px) } 75% { transform: translateX(8px) } }
+</style>
+</head>
+<body>
+<div id="hud"><span>Punkte: <b id="punkte">0</b></span><span>Level: <b id="level">1</b></span><span>Fehlklicks: <b id="fehl">0</b></span></div>
+<div id="msg">Drück den Knopf. Ist ganz einfach. Wirklich.</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let punkte = 0, level = 1, fehl = 0;
+let knopf, fakes = [];
+
+const lobe = [
+  "Wow. Ein Knopf. Gedrückt. Unglaublich.",
+  "Deine Eltern wären stolz. Vielleicht.",
+  "Das war Glück.",
+  "Okay, jetzt wird's ernst.",
+  "Der Knopf ist beleidigt.",
+  "Hast du nichts Besseres zu tun?",
+  "Nobelpreis ist unterwegs.",
+  "Der Knopf hat jetzt Angst vor dir.",
+];
+const spott = [
+  "Daneben!", "Knapp vorbei ist auch vorbei.", "Der Knopf lacht dich aus.",
+  "Brille vergessen?", "Peinlich.", "Das war ein Fake-Knopf, du Opfer. 🤡",
+  "Hihi.", "Nö.",
+];
+const beschriftungen = ["Drück mich", "Nicht drücken", "Bitte nicht", "Hier!", "Ich bin's", "Knopf", "😳", "Lass das"];
+const zufall = (a) => a[Math.floor(Math.random() * a.length)];
+
+function sag(t) { $("msg").textContent = t; }
+
+function platziere(el) {
+  const w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = Math.random() * (innerWidth - w - 20) + 10 + "px";
+  el.style.top = 60 + Math.random() * (innerHeight - h - 140) + "px";
+}
+
+function neuesLevel() {
+  document.querySelectorAll(".knopf").forEach((k) => k.remove());
+  fakes = [];
+  knopf = document.createElement("button");
+  knopf.className = "knopf";
+  knopf.textContent = level >= 3 ? zufall(beschriftungen) : "Drück mich";
+  knopf.style.fontSize = Math.max(10, 22 - level * 1.5) + "px";
+  knopf.addEventListener("click", getroffen);
+  document.body.appendChild(knopf);
+  platziere(knopf);
+
+  // Ab Level 4: Fake-Knöpfe, die genauso aussehen (meistens)
+  const anzahlFakes = Math.max(0, level - 3);
+  for (let i = 0; i < anzahlFakes; i++) {
+    const f = document.createElement("button");
+    f.className = "knopf" + (level < 6 ? " fake" : "");
+    f.textContent = zufall(beschriftungen);
+    f.style.fontSize = knopf.style.fontSize;
+    f.addEventListener("click", (e) => { e.stopPropagation(); daneben(true); f.remove(); });
+    document.body.appendChild(f);
+    platziere(f);
+    fakes.push(f);
+  }
+}
+
+function getroffen(e) {
+  e.stopPropagation();
+  punkte += level;
+  $("punkte").textContent = punkte;
+  boom(e.clientX, e.clientY, zufall(["💥", "🎉", "✨", "🥳", "🍌"]));
+  sag(zufall(lobe));
+  if (punkte >= level * level * 2) {
+    level++;
+    $("level").textContent = level;
+    sag("LEVEL " + level + "! " + zufall(["Der Knopf hat trainiert.", "Jetzt wird's blöd.", "Viel Glück, Loser."]));
+  }
+  neuesLevel();
+}
+
+function daneben(fake) {
+  fehl++;
+  $("fehl").textContent = fehl;
+  sag(fake ? "Das war ein Fake-Knopf. 🤡" : zufall(spott));
+  document.body.classList.remove("wackel");
+  void document.body.offsetWidth;
+  document.body.classList.add("wackel");
+  if (fehl % 10 === 0) sag(fehl + " Fehlklicks. Der Knopf schreibt das in sein Tagebuch.");
+}
+
+function boom(x, y, emoji) {
+  const b = document.createElement("div");
+  b.className = "boom"; b.textContent = emoji;
+  b.style.left = x - 24 + "px"; b.style.top = y - 24 + "px";
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 800);
+}
+
+// Der Knopf flieht vor der Maus – je höher das Level, desto feiger
+document.addEventListener("pointermove", (e) => {
+  if (!knopf) return;
+  const r = knopf.getBoundingClientRect();
+  const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+  const angst = 40 + level * 15;
+  const fluchtChance = Math.min(0.9, 0.15 + level * 0.1);
+  if (level >= 2 && dist < angst && Math.random() < fluchtChance) {
+    platziere(knopf);
+    if (Math.random() < 0.2) sag(zufall(["Nö!", "Hehe.", "Zu langsam!", "Fang mich doch!"]));
+  }
+});
+
+document.addEventListener("click", () => daneben(false));
+
+neuesLevel();
+</script>
+</body>
+</html>
